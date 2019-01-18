@@ -1,0 +1,19 @@
+{
+  "Version": "2018-12-27",
+  "Deployment": [
+    {
+      "source_code_path": "./src/app",
+      "tag": "production"
+    }
+  ],
+  "Application": [
+    {
+      "root_domain": "domain.ext"
+    }
+  ],
+  "AWS": [
+    {
+      "s3_bucket_name": "domain.ext"
+    }
+  ]
+}

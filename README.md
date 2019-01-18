@@ -1,4 +1,4 @@
-# WebApp Boilerplate
+# Terraform AWS s3 CloudFront
 
 This **terraform** deployment is meant to wrap a static webapp / frontend skeleton around its own infrastructure logic over **AWS**
 
@@ -59,7 +59,7 @@ An example is listed in the example below:
 }
 ```
 
-## Deployment polocy variables
+## Deployment policy variables
 
 The deployment policy variables are stored in `./src/.deployment_policy.json`.
 
@@ -170,7 +170,7 @@ variable "aws_cloudfront_origin_access_identity_comment" {
 }
 
 variable "aws_cloudfront_distribution_comment" {
-  description = "Cloudfront distribution description or notes"
+  description = "CloudFront distribution description or notes"
   default     = "webapp cloudfront distribution"
   type        = "string"
 }

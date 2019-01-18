@@ -1,0 +1,68 @@
+image:
+  name: hashicorp/terraform:light
+  entrypoint:
+    - "/usr/bin/env"
+    - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+before_script:
+  - rm -rf .terraform
+  - terraform --version
+  - mkdir -p ~/.aws
+  - echo $AWS_CREDS | base64 -d > ~/.aws/credentials
+  - terraform init -input=false -force-copy
+  - apk add jq
+  - export application_root_domain=$(cat ./src/.deployment_policy.json |jq -r '.Application | .[].root_domain')
+  - export deployment_tag=$(cat ./src/.deployment_policy.json |jq -r '.Deployment | .[].tag')
+  - export deployment_source_code_path=$(cat ./src/.deployment_policy.json |jq -r '.Deployment | .[].source_code_path')
+  - export aws_s3_bucket_name=$(cat ./src/.deployment_policy.json |jq -r '.AWS | .[].s3_bucket_name')
+
+stages:
+  - validate
+  - plan
+  - apply
+  - deploy
+
+validate:
+  stage: validate
+  script:
+    - terraform validate -var "application_root_domain=$application_root_domain" -var "aws_s3_bucket_name=$aws_s3_bucket_name" -var "deployment_source_code_path=$deployment_source_code_path" -var "deployment_tag=$deployment_tag"
+  only:
+    - master
+
+plan:
+  stage: plan
+  script:
+    - terraform plan -var "application_root_domain=$application_root_domain" -var "aws_s3_bucket_name=$aws_s3_bucket_name"  -var "deployment_source_code_path=$deployment_source_code_path" -var "deployment_tag=$deployment_tag" -out "planfile"
+  dependencies:
+    - validate
+  artifacts:
+    paths:
+      - planfile
+    expire_in: 10 days
+  only:
+    - master
+
+apply:
+  stage: apply
+  script:
+    - apk add python py-pip py-setuptools ca-certificates groff less
+    - pip --no-cache-dir install awscli
+    - rm -rf /var/cache/apk/*
+    - terraform apply -input=false -auto-approve "planfile"
+  dependencies:
+    - plan
+  when: manual
+  only:
+    - master
+
+deploy:
+  stage: deploy
+  script:
+    - apk add python py-pip py-setuptools ca-certificates groff less
+    - pip --no-cache-dir install awscli
+    - rm -rf /var/cache/apk/*
+    - aws s3 sync $deployment_source_code_path s3://$aws_s3_bucket_name --exclude index.html
+  dependencies:
+    - apply
+  when: manual
+  only:
+    - master
